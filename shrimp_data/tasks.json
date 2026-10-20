@@ -1,0 +1,442 @@
+{
+  "tasks": [
+    {
+      "id": "bccd973e-e13a-4303-8526-b930dbff7edf",
+      "name": "[1단계] PRD 열린 질문 결정 및 Starter Kit 정리 범위 확정",
+      "description": "ROADMAP 1단계 첫 작업. 사용자에게 (1) Next.js 버전(15 다운그레이드 / 16.4 유지), (2) 글 URL 방식(Notion 페이지 ID / Slug rich_text 속성), (3) Starter Kit 정리 범위(로그인·게시판·관리자·Prisma·Redis 제거 / 유지)를 묻고 결정을 docs/PRD.md 14장과 CLAUDE.md 현재 상태 섹션에 기록한다. 결정에 따라 Starter Kit 코드를 정리한다. 특히 /posts/[slug]는 (user)/posts/[postId]/edit와 같은 레벨 동적 세그먼트 이름 충돌이 생기므로 반드시 해소한다.",
+      "notes": "결정 전 삭제·다운그레이드 금지 (CLAUDE.md). 제거 범위가 크면 커밋을 분리한다.",
+      "status": "pending",
+      "dependencies": [],
+      "createdAt": "2026-10-20T12:33:58.134Z",
+      "updatedAt": "2026-10-20T12:33:58.134Z",
+      "relatedFiles": [
+        {
+          "path": "docs/PRD.md",
+          "type": "TO_MODIFY",
+          "description": "14장 열린 질문 결정 기록"
+        },
+        {
+          "path": "CLAUDE.md",
+          "type": "TO_MODIFY",
+          "description": "현재 상태 섹션 갱신"
+        },
+        {
+          "path": "apps/web/src/app/(user)/posts/[postId]/edit/page.tsx",
+          "type": "REFERENCE",
+          "description": "/posts/[slug]와 경로 충돌 가능"
+        },
+        {
+          "path": "apps/web/package.json",
+          "type": "TO_MODIFY",
+          "description": "next 16.4.0 및 Starter Kit 의존성"
+        }
+      ],
+      "implementationGuide": "1. AskUserQuestion으로 세 가지 결정 수집 (임의 결정 금지)\\n2. PRD 14장 표에 결정 열 추가, CLAUDE.md 현재 상태 갱신\\n3. 제거 결정 시: 해당 라우트 그룹·components·server actions·api/v1·packages(core/db/validators) 의존 제거, package.json·turbo.json globalEnv 정리\\n4. 유지 결정 시: (user)/posts/[postId] 세그먼트를 다른 경로로 옮기거나 이름을 통일해 충돌 해소\\n5. npm install 후 build/lint/typecheck 확인",
+      "verificationCriteria": "세 결정이 문서에 기록됨. 남은 코드로 npm run build, npm run lint, npm run typecheck 통과. /posts 하위 경로 충돌 없음.",
+      "analysisResult": "docs/ROADMAP.md의 5단계 순서(초기 설정 → 공통 모듈 → 핵심 기능 → 추가 기능 → 최적화·배포)를 그대로 따라 apps/web Starter Kit 위에 Notion CMS 포트폴리오를 구현한다. 공통 규칙: Notion 호출은 apps/web/src/lib/notion/ 아래 server-only 모듈에서만, 로깅은 src/lib/logger.ts의 pino logger(console.log 금지), 캐시는 src/lib/cache.ts의 cached()/cacheKeys 재사용, 함수마다 한국어 JSDoc(@param), Prettier(2칸, 큰따옴표, 세미콜론, printWidth 100). Next.js 코드 작성 전 node_modules/next/dist/docs 확인, @notionhq/client는 context7로 최신 문서 확인. 각 작업 후 npm run lint, npm run typecheck 통과."
+    },
+    {
+      "id": "75eb9684-39b6-4d31-b0eb-30c2b3a277c8",
+      "name": "[1단계] @notionhq/client 설치, 환경 변수, Notion DB·샘플 글 연동 확인",
+      "description": "apps/web에 @notionhq/client 설치. NOTION_TOKEN, NOTION_DATABASE_ID를 .env.example, .env, turbo.json globalEnv에 추가. apps/web/src/lib/notion/client.ts에 server-only Notion 클라이언트 생성. 사용자가 PRD 6장 구조(Title, Category, Tags, Published, Status, 결정 시 Slug)로 DB를 만들고 Integration 연결, 샘플 글 5개(초안 1개 포함, 카테고리·날짜 혼합) 작성하도록 안내 후 조회로 확인.",
+      "notes": "토큰은 커밋 금지. .env는 .gitignore 확인.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "bccd973e-e13a-4303-8526-b930dbff7edf"
+        }
+      ],
+      "createdAt": "2026-10-20T12:33:58.134Z",
+      "updatedAt": "2026-10-20T12:33:58.134Z",
+      "relatedFiles": [
+        {
+          "path": "apps/web/src/lib/notion/client.ts",
+          "type": "CREATE",
+          "description": "서버 전용 Notion 클라이언트"
+        },
+        {
+          "path": ".env.example",
+          "type": "TO_MODIFY",
+          "description": "NOTION_TOKEN, NOTION_DATABASE_ID 추가"
+        },
+        {
+          "path": "turbo.json",
+          "type": "TO_MODIFY",
+          "description": "globalEnv에 NOTION_* 추가"
+        },
+        {
+          "path": "apps/web/src/lib/logger.ts",
+          "type": "DEPENDENCY",
+          "description": "pino logger"
+        }
+      ],
+      "implementationGuide": "1. context7로 @notionhq/client 최신 문서 확인: databases.query인지 dataSources.query(data_source_id)인지, notionVersion\\n2. npm install @notionhq/client -w web\\n3. client.ts: import \"server-only\"; getNotionClient() 지연 초기화, env 누락 시 logger.error 후 Error throw; getDatabaseId() export\\n4. Notion DB 생성·Integration 연결은 사용자 수동 작업 체크리스트로 안내\\n5. 임시 스크립트(scratchpad) 또는 서버 컴포넌트에서 조회해 5건 반환 확인 후 임시 코드 제거",
+      "verificationCriteria": "서버에서 클라이언트 초기화 시 오류 없음. DB 조회 시 샘플 글 5건 반환. env 누락 시 명확한 오류 로그.",
+      "analysisResult": "docs/ROADMAP.md의 5단계 순서(초기 설정 → 공통 모듈 → 핵심 기능 → 추가 기능 → 최적화·배포)를 그대로 따라 apps/web Starter Kit 위에 Notion CMS 포트폴리오를 구현한다. 공통 규칙: Notion 호출은 apps/web/src/lib/notion/ 아래 server-only 모듈에서만, 로깅은 src/lib/logger.ts의 pino logger(console.log 금지), 캐시는 src/lib/cache.ts의 cached()/cacheKeys 재사용, 함수마다 한국어 JSDoc(@param), Prettier(2칸, 큰따옴표, 세미콜론, printWidth 100). Next.js 코드 작성 전 node_modules/next/dist/docs 확인, @notionhq/client는 context7로 최신 문서 확인. 각 작업 후 npm run lint, npm run typecheck 통과."
+    },
+    {
+      "id": "1cdd7003-7aa1-46ec-923c-7be86b5ff757",
+      "name": "[1단계] 라우트 골격 생성 (/, /posts/[slug], /categories/[category])",
+      "description": "빈 페이지 3개를 만든다. 홈은 기존 (public)/page.tsx를 포트폴리오 홈 자리로 교체(정리 범위 결정 따름). Next 16 규약대로 params는 Promise로 받는다.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "bccd973e-e13a-4303-8526-b930dbff7edf"
+        }
+      ],
+      "createdAt": "2026-10-20T12:33:58.134Z",
+      "updatedAt": "2026-10-20T12:33:58.134Z",
+      "relatedFiles": [
+        {
+          "path": "apps/web/src/app/(public)/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "홈"
+        },
+        {
+          "path": "apps/web/src/app/(public)/posts/[slug]/page.tsx",
+          "type": "CREATE",
+          "description": "글 상세 골격"
+        },
+        {
+          "path": "apps/web/src/app/(public)/categories/[category]/page.tsx",
+          "type": "CREATE",
+          "description": "카테고리 골격"
+        }
+      ],
+      "implementationGuide": "1. node_modules/next/dist/docs에서 dynamic routes, params 타입 확인\\n2. app/(public)/page.tsx 홈 placeholder\\n3. app/(public)/posts/[slug]/page.tsx: const { slug } = await params; 제목 placeholder\\n4. app/(public)/categories/[category]/page.tsx: decodeURIComponent(category)\\n5. 각 페이지 JSDoc",
+      "verificationCriteria": "npm run dev에서 세 경로 모두 200으로 열림. npm run build, npm run lint 통과 (ROADMAP 1단계 완료 기준).",
+      "analysisResult": "docs/ROADMAP.md의 5단계 순서(초기 설정 → 공통 모듈 → 핵심 기능 → 추가 기능 → 최적화·배포)를 그대로 따라 apps/web Starter Kit 위에 Notion CMS 포트폴리오를 구현한다. 공통 규칙: Notion 호출은 apps/web/src/lib/notion/ 아래 server-only 모듈에서만, 로깅은 src/lib/logger.ts의 pino logger(console.log 금지), 캐시는 src/lib/cache.ts의 cached()/cacheKeys 재사용, 함수마다 한국어 JSDoc(@param), Prettier(2칸, 큰따옴표, 세미콜론, printWidth 100). Next.js 코드 작성 전 node_modules/next/dist/docs 확인, @notionhq/client는 context7로 최신 문서 확인. 각 작업 후 npm run lint, npm run typecheck 통과."
+    },
+    {
+      "id": "a02d4342-87f5-419b-9cd6-8fd64a484de1",
+      "name": "[2단계] Notion 데이터 계층 (Post 타입, 파싱, 조회 함수) 및 단위 테스트",
+      "description": "lib/notion/에 types.ts, parse.ts, posts.ts 작성. Post 타입: { id: string; slug: string; title: string; category: string; tags: string[]; published: string(YYYY-MM-DD); status: string }. 순수 함수 parsePost(page): Post | null (필수 속성 누락 시 null + logger.warn). getPublishedPosts(): Status=발행됨 필터, Published 내림차순, next_cursor 반복, Published 없는 글 제외, cached(cacheKeys.publishedPosts, ttl). getPostBySlug(slug): Post | null (캐시된 목록에서 찾음). getPostBlocks(pageId): 블록 목록, has_children 재귀(children 필드에 저장), 페이지네이션, cached(cacheKeys.postBlocks(id)). apps/web에 Vitest를 추가하고 parsePost 테스트 작성.",
+      "notes": "cached는 JSON 직렬화하므로 Date 객체 대신 문자열 사용. TTL은 이미지 만료 고려해 3600초 미만.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "75eb9684-39b6-4d31-b0eb-30c2b3a277c8"
+        }
+      ],
+      "createdAt": "2026-10-20T12:33:58.134Z",
+      "updatedAt": "2026-10-20T12:33:58.134Z",
+      "relatedFiles": [
+        {
+          "path": "apps/web/src/lib/notion/types.ts",
+          "type": "CREATE",
+          "description": "Post, 블록 타입"
+        },
+        {
+          "path": "apps/web/src/lib/notion/parse.ts",
+          "type": "CREATE",
+          "description": "속성 파싱 순수 함수"
+        },
+        {
+          "path": "apps/web/src/lib/notion/posts.ts",
+          "type": "CREATE",
+          "description": "조회 함수"
+        },
+        {
+          "path": "apps/web/src/lib/cache.ts",
+          "type": "TO_MODIFY",
+          "description": "cacheKeys 추가",
+          "lineStart": 52,
+          "lineEnd": 54
+        },
+        {
+          "path": "packages/core/package.json",
+          "type": "REFERENCE",
+          "description": "Vitest 설정 참고"
+        }
+      ],
+      "implementationGuide": "1. context7로 query 필터/정렬 문법, blocks.children.list 확인\\n2. cache.ts cacheKeys에 publishedPosts: \"notion:posts\", postBlocks: (id) => `notion:blocks:${id}` 추가\\n3. posts.ts 상단 import \"server-only\"; parse.ts는 순수 모듈(server-only 없이)로 테스트 가능하게\\n4. API 오류는 logger.error({ err }) 후 throw\\n5. apps/web package.json에 vitest devDependency와 \"test\": \"vitest run\" 추가, packages/core 설정 참고\\n6. parse.test.ts: 정상, 태그 없음, 필수 누락, Slug 방식에 따른 slug 생성",
+      "verificationCriteria": "getPublishedPosts()가 초안을 제외하고 최신순 반환. npm run test에 web 테스트 포함되어 통과.",
+      "analysisResult": "docs/ROADMAP.md의 5단계 순서(초기 설정 → 공통 모듈 → 핵심 기능 → 추가 기능 → 최적화·배포)를 그대로 따라 apps/web Starter Kit 위에 Notion CMS 포트폴리오를 구현한다. 공통 규칙: Notion 호출은 apps/web/src/lib/notion/ 아래 server-only 모듈에서만, 로깅은 src/lib/logger.ts의 pino logger(console.log 금지), 캐시는 src/lib/cache.ts의 cached()/cacheKeys 재사용, 함수마다 한국어 JSDoc(@param), Prettier(2칸, 큰따옴표, 세미콜론, printWidth 100). Next.js 코드 작성 전 node_modules/next/dist/docs 확인, @notionhq/client는 context7로 최신 문서 확인. 각 작업 후 npm run lint, npm run typecheck 통과."
+    },
+    {
+      "id": "95e0f20a-0bbd-498c-b7b1-82a92fcfe459",
+      "name": "[2단계] 공통 UI 컴포넌트 (레이아웃, PostCard, 배지, EmptyState, 스켈레톤, 404, 날짜 유틸)",
+      "description": "헤더(로고, 카테고리 메뉴, 검색 자리)·푸터 레이아웃, PostCard(제목·카테고리·태그·발행일, /posts/[slug] 링크), CategoryBadge/TagBadge(components/ui/badge.tsx 재사용), EmptyState(title, description), PostCardSkeleton, not-found.tsx 포트폴리오 문구, lib/format-date.ts(formatDate(iso): \"2026-10-20\"). 기존 site-header.tsx는 포트폴리오용으로 수정.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "a02d4342-87f5-419b-9cd6-8fd64a484de1"
+        }
+      ],
+      "createdAt": "2026-10-20T12:33:58.134Z",
+      "updatedAt": "2026-10-20T12:33:58.134Z",
+      "relatedFiles": [
+        {
+          "path": "apps/web/src/components/site-header.tsx",
+          "type": "TO_MODIFY",
+          "description": "포트폴리오 헤더"
+        },
+        {
+          "path": "apps/web/src/components/ui/badge.tsx",
+          "type": "REFERENCE",
+          "description": "배지 재사용"
+        },
+        {
+          "path": "apps/web/src/components/ui/card.tsx",
+          "type": "REFERENCE",
+          "description": "카드 재사용"
+        },
+        {
+          "path": "apps/web/src/app/not-found.tsx",
+          "type": "TO_MODIFY",
+          "description": "404"
+        },
+        {
+          "path": "apps/web/src/app/layout.tsx",
+          "type": "TO_MODIFY",
+          "description": "헤더·푸터 배치"
+        }
+      ],
+      "implementationGuide": "1. components/portfolio/ 아래 post-card.tsx, category-badge.tsx, tag-badge.tsx, empty-state.tsx, post-card-skeleton.tsx, site-footer.tsx\\n2. site-header: 카테고리 메뉴는 props로 categories: string[] 받음 (레이아웃에서 getPublishedPosts로 계산)\\n3. Card, Badge 재사용, lucide-react 아이콘\\n4. format-date 단위 테스트",
+      "verificationCriteria": "샘플 데이터로 컴포넌트가 화면에 표시됨. lint/typecheck/test 통과 (ROADMAP 2단계 완료 기준).",
+      "analysisResult": "docs/ROADMAP.md의 5단계 순서(초기 설정 → 공통 모듈 → 핵심 기능 → 추가 기능 → 최적화·배포)를 그대로 따라 apps/web Starter Kit 위에 Notion CMS 포트폴리오를 구현한다. 공통 규칙: Notion 호출은 apps/web/src/lib/notion/ 아래 server-only 모듈에서만, 로깅은 src/lib/logger.ts의 pino logger(console.log 금지), 캐시는 src/lib/cache.ts의 cached()/cacheKeys 재사용, 함수마다 한국어 JSDoc(@param), Prettier(2칸, 큰따옴표, 세미콜론, printWidth 100). Next.js 코드 작성 전 node_modules/next/dist/docs 확인, @notionhq/client는 context7로 최신 문서 확인. 각 작업 후 npm run lint, npm run typecheck 통과."
+    },
+    {
+      "id": "630e2946-7a09-441e-9aad-8b916cc4da36",
+      "name": "[3단계] 홈 최근 글 목록",
+      "description": "홈(/)에서 getPublishedPosts() 결과를 PostCard 반응형 그리드(모바일 1열, sm 2열, lg 3열)로 표시. 글이 없으면 EmptyState. 로딩은 loading.tsx에 스켈레톤.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "95e0f20a-0bbd-498c-b7b1-82a92fcfe459"
+        },
+        {
+          "taskId": "1cdd7003-7aa1-46ec-923c-7be86b5ff757"
+        }
+      ],
+      "createdAt": "2026-10-20T12:33:58.134Z",
+      "updatedAt": "2026-10-20T12:33:58.134Z",
+      "relatedFiles": [
+        {
+          "path": "apps/web/src/app/(public)/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "홈"
+        }
+      ],
+      "implementationGuide": "1. 서버 컴포넌트에서 await getPublishedPosts()\\n2. grid gap-4 sm:grid-cols-2 lg:grid-cols-3\\n3. (public)/loading.tsx에 PostCardSkeleton 반복\\n4. 잔디 자리(4단계) 섹션은 비워 둠",
+      "verificationCriteria": "발행된 글만 최신순으로 표시, 카드 클릭 시 /posts/[slug] 이동.",
+      "analysisResult": "docs/ROADMAP.md의 5단계 순서(초기 설정 → 공통 모듈 → 핵심 기능 → 추가 기능 → 최적화·배포)를 그대로 따라 apps/web Starter Kit 위에 Notion CMS 포트폴리오를 구현한다. 공통 규칙: Notion 호출은 apps/web/src/lib/notion/ 아래 server-only 모듈에서만, 로깅은 src/lib/logger.ts의 pino logger(console.log 금지), 캐시는 src/lib/cache.ts의 cached()/cacheKeys 재사용, 함수마다 한국어 JSDoc(@param), Prettier(2칸, 큰따옴표, 세미콜론, printWidth 100). Next.js 코드 작성 전 node_modules/next/dist/docs 확인, @notionhq/client는 context7로 최신 문서 확인. 각 작업 후 npm run lint, npm run typecheck 통과."
+    },
+    {
+      "id": "7030302e-8da0-44d9-8cb2-3fb8fa4f5990",
+      "name": "[3단계] Notion 블록 렌더러",
+      "description": "components/notion/ 아래 NotionBlocks({ blocks }) 서버 컴포넌트와 RichText({ richText }). 지원: heading_1~3, paragraph, bulleted/numbered_list_item(연속 항목을 ul/ol로 그룹), to_do, code(구문 강조), quote, callout, divider, image(alt=caption), bookmark/link, toggle(details/summary). 리치 텍스트: bold, italic, strikethrough, underline, code, link, color. 미지원 블록은 logger.debug 후 null 반환. children은 재귀 렌더링.",
+      "notes": "샘플 글에 모든 지원 블록을 넣은 테스트용 글을 Notion에 준비하면 검증이 쉽다.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "a02d4342-87f5-419b-9cd6-8fd64a484de1"
+        }
+      ],
+      "createdAt": "2026-10-20T12:33:58.134Z",
+      "updatedAt": "2026-10-20T12:33:58.134Z",
+      "relatedFiles": [
+        {
+          "path": "apps/web/src/components/notion/notion-blocks.tsx",
+          "type": "CREATE",
+          "description": "블록 렌더러"
+        },
+        {
+          "path": "apps/web/src/components/notion/rich-text.tsx",
+          "type": "CREATE",
+          "description": "리치 텍스트"
+        }
+      ],
+      "implementationGuide": "1. groupListItems(blocks) 순수 함수로 목록 그룹화 + 단위 테스트\\n2. switch(block.type) 매핑, default: null\\n3. 구문 강조 라이브러리 선택(shiki 서버 렌더 권장) — context7로 최신 API 확인\\n4. @tailwindcss/typography의 prose 클래스 활용\\n5. 이미지 URL은 file/external 둘 다 처리",
+      "verificationCriteria": "샘플 글의 모든 블록 종류가 깨지지 않고 표시, 미지원 블록이 있어도 페이지 오류 없음, groupListItems 테스트 통과.",
+      "analysisResult": "docs/ROADMAP.md의 5단계 순서(초기 설정 → 공통 모듈 → 핵심 기능 → 추가 기능 → 최적화·배포)를 그대로 따라 apps/web Starter Kit 위에 Notion CMS 포트폴리오를 구현한다. 공통 규칙: Notion 호출은 apps/web/src/lib/notion/ 아래 server-only 모듈에서만, 로깅은 src/lib/logger.ts의 pino logger(console.log 금지), 캐시는 src/lib/cache.ts의 cached()/cacheKeys 재사용, 함수마다 한국어 JSDoc(@param), Prettier(2칸, 큰따옴표, 세미콜론, printWidth 100). Next.js 코드 작성 전 node_modules/next/dist/docs 확인, @notionhq/client는 context7로 최신 문서 확인. 각 작업 후 npm run lint, npm run typecheck 통과."
+    },
+    {
+      "id": "3cd1b9b9-0783-48dd-9f6c-e2edc60c5bfd",
+      "name": "[3단계] 글 상세 페이지 (메타, 본문, 이전/다음, 404)",
+      "description": "/posts/[slug]에서 getPostBySlug로 글 조회, 없거나 초안이면 notFound(). 메타(카테고리 배지, 발행일, 태그), NotionBlocks로 본문, 이전/다음 글 링크(getAdjacentPosts(posts, slug) 순수 함수 + 테스트). generateStaticParams로 발행 글 사전 생성.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "7030302e-8da0-44d9-8cb2-3fb8fa4f5990"
+        },
+        {
+          "taskId": "630e2946-7a09-441e-9aad-8b916cc4da36"
+        }
+      ],
+      "createdAt": "2026-10-20T12:33:58.134Z",
+      "updatedAt": "2026-10-20T12:33:58.134Z",
+      "relatedFiles": [
+        {
+          "path": "apps/web/src/app/(public)/posts/[slug]/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "글 상세"
+        },
+        {
+          "path": "apps/web/src/lib/notion/filters.ts",
+          "type": "CREATE",
+          "description": "getAdjacentPosts"
+        }
+      ],
+      "implementationGuide": "1. Next 16 문서로 generateStaticParams, notFound 확인\\n2. const post = await getPostBySlug(slug); if (!post) notFound();\\n3. blocks = await getPostBlocks(post.id)\\n4. lib/notion/filters.ts에 getAdjacentPosts(posts, slug): { prev: Post | null; next: Post | null }\\n5. article 시맨틱 태그",
+      "verificationCriteria": "홈→상세 이동 동작, 이전/다음 링크 정확, Notion에서 초안으로 바꾼 글은 목록·상세 모두 미노출(404) (ROADMAP 3단계 완료 기준).",
+      "analysisResult": "docs/ROADMAP.md의 5단계 순서(초기 설정 → 공통 모듈 → 핵심 기능 → 추가 기능 → 최적화·배포)를 그대로 따라 apps/web Starter Kit 위에 Notion CMS 포트폴리오를 구현한다. 공통 규칙: Notion 호출은 apps/web/src/lib/notion/ 아래 server-only 모듈에서만, 로깅은 src/lib/logger.ts의 pino logger(console.log 금지), 캐시는 src/lib/cache.ts의 cached()/cacheKeys 재사용, 함수마다 한국어 JSDoc(@param), Prettier(2칸, 큰따옴표, 세미콜론, printWidth 100). Next.js 코드 작성 전 node_modules/next/dist/docs 확인, @notionhq/client는 context7로 최신 문서 확인. 각 작업 후 npm run lint, npm run typecheck 통과."
+    },
+    {
+      "id": "2e7d0445-52f0-4a87-88e3-2133ddfd7dfd",
+      "name": "[4단계] 카테고리·날짜 필터 (F2)",
+      "description": "/categories/[category] 페이지와 홈 목록 상단에 카테고리 칩(전체 + 목록), 연도/월 select. 필터 상태는 URL 쿼리(?year=&month=&category=)로 유지. 순수 함수 filterPosts(posts, { category?, year?, month?, date?, q? }): Post[]와 getCategories(posts): string[], getYears(posts): number[]를 lib/notion/filters.ts에 두고 단위 테스트.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "3cd1b9b9-0783-48dd-9f6c-e2edc60c5bfd"
+        }
+      ],
+      "createdAt": "2026-10-20T12:34:27.084Z",
+      "updatedAt": "2026-10-20T12:34:27.084Z",
+      "relatedFiles": [
+        {
+          "path": "apps/web/src/lib/notion/filters.ts",
+          "type": "TO_MODIFY",
+          "description": "filterPosts, getCategories, getYears"
+        },
+        {
+          "path": "apps/web/src/app/(public)/categories/[category]/page.tsx",
+          "type": "TO_MODIFY",
+          "description": "카테고리 페이지"
+        }
+      ],
+      "implementationGuide": "1. Next 16 문서로 searchParams(Promise) 확인\\n2. filterPosts는 캐시된 getPublishedPosts 결과에 적용 (Notion 재호출 금지)\\n3. CategoryChips(links 기반, 현재 칩 aria-current), DateFilter(클라이언트 컴포넌트, router.push로 쿼리 갱신)\\n4. 잘못된 쿼리 값은 무시\\n5. 결과 없음 EmptyState",
+      "verificationCriteria": "카테고리·연·월 조합 시 올바른 글만 표시. 필터 URL 새로고침·공유 시 동일 결과. filterPosts 테스트 통과."
+    },
+    {
+      "id": "f2d8a065-6626-4390-8c07-352812cb8754",
+      "name": "[4단계] 제목·태그 검색 (F3)",
+      "description": "헤더 검색창에서 ?q=로 제출, 제목·태그 대상 대소문자 무시 검색(filterPosts의 q 옵션 사용). 결과 페이지는 홈 목록 재사용 또는 /search. 결과 없음 시 EmptyState. 기존 components/search-form.tsx를 재사용·수정.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "2e7d0445-52f0-4a87-88e3-2133ddfd7dfd"
+        }
+      ],
+      "createdAt": "2026-10-20T12:34:27.084Z",
+      "updatedAt": "2026-10-20T12:34:27.084Z",
+      "relatedFiles": [
+        {
+          "path": "apps/web/src/components/search-form.tsx",
+          "type": "TO_MODIFY",
+          "description": "검색 폼"
+        }
+      ],
+      "implementationGuide": "1. search-form.tsx를 GET form(action 경로, name=q)으로 정리\\n2. q는 trim, toLocaleLowerCase로 비교\\n3. 다른 필터와 조합 가능\\n4. q 단위 테스트 추가",
+      "verificationCriteria": "대소문자 상관없이 제목·태그 매칭, 빈 결과 안내 표시, 필터와 조합 시 정확."
+    },
+    {
+      "id": "5e357ab7-c39f-43b8-a4f1-7ccd17e0c5cd",
+      "name": "[4단계] 작성 기록 잔디 그래프 (F4)",
+      "description": "lib/notion/contributions.ts에 countByDate(posts, year): Map<string, number>와 buildContributionGrid(year, counts): 53주 x 7일 셀 배열({ date: string | null; count: number; level: 0|1|2|3 }) 순수 함수 + 테스트. 홈에 ContributionGraph 컴포넌트: 레벨별 색, 툴팁 \"2026-10-20 · 글 2개\"(hover, 모바일 탭), 셀 클릭 시 ?date=YYYY-MM-DD 목록으로 이동, overflow-x-auto 가로 스크롤, 제목 \"2026년 작성 기록 (총 N개)\".",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "2e7d0445-52f0-4a87-88e3-2133ddfd7dfd"
+        }
+      ],
+      "createdAt": "2026-10-20T12:34:27.084Z",
+      "updatedAt": "2026-10-20T12:34:27.084Z",
+      "relatedFiles": [
+        {
+          "path": "apps/web/src/lib/notion/contributions.ts",
+          "type": "CREATE",
+          "description": "집계·그리드 함수"
+        },
+        {
+          "path": "apps/web/src/components/portfolio/contribution-graph.tsx",
+          "type": "CREATE",
+          "description": "잔디 컴포넌트"
+        }
+      ],
+      "implementationGuide": "1. 연도 첫날 요일만큼 앞쪽 빈 셀\\n2. level: 0,1,2,3+ → 3\\n3. 셀은 Link 또는 button, aria-label에 툴팁 문구\\n4. 툴팁은 클라이언트 컴포넌트로 상태 관리(탭 토글)\\n5. 색은 다크모드 대비 고려한 Tailwind 토큰\\n6. filterPosts에 date 옵션 처리",
+      "verificationCriteria": "셀 수와 발행일별 글 수 일치(테스트), 툴팁·클릭 이동·모바일 가로 스크롤 동작 (ROADMAP 4단계 완료 기준)."
+    },
+    {
+      "id": "0ee0798e-132a-444a-b6e3-9a268e15aaa9",
+      "name": "[5단계] ISR 캐시 및 이미지·폰트 최적화",
+      "description": "페이지 revalidate를 3600초 미만(예: 1800)으로 설정하고 cached TTL과 정렬. next/image로 Notion 이미지 표시(next.config remotePatterns에 Notion S3·외부 도메인), 폰트는 next/font. Notion 요청은 목록 1회 + 글별 블록만 발생하는지 로그로 확인.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "f2d8a065-6626-4390-8c07-352812cb8754"
+        },
+        {
+          "taskId": "5e357ab7-c39f-43b8-a4f1-7ccd17e0c5cd"
+        }
+      ],
+      "createdAt": "2026-10-20T12:34:27.084Z",
+      "updatedAt": "2026-10-20T12:34:27.084Z",
+      "relatedFiles": [
+        {
+          "path": "apps/web/next.config.ts",
+          "type": "TO_MODIFY",
+          "description": "images 설정"
+        }
+      ],
+      "implementationGuide": "1. Next 16 문서로 revalidate·캐싱 규약(use cache 등 변경 여부) 확인\\n2. 이미지 만료 대응 방식은 1단계 결정 따름\\n3. next.config.ts images.remotePatterns 추가",
+      "verificationCriteria": "Notion에서 발행한 글이 재검증 주기 안에 반영, 이미지 만료로 깨지지 않음, 빌드 통과."
+    },
+    {
+      "id": "8db0543e-246d-49d7-8f26-0cea455e7838",
+      "name": "[5단계] SEO 및 반응형·접근성 점검",
+      "description": "페이지별 metadata/generateMetadata(title, description, OG), app/sitemap.ts(발행 글 + 카테고리), app/robots.ts, OG 이미지. 모바일(<640)/태블릿/데스크톱 레이아웃 점검, 시맨틱 태그·alt·키보드 탐색·색 대비 점검 후 수정.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "0ee0798e-132a-444a-b6e3-9a268e15aaa9"
+        }
+      ],
+      "createdAt": "2026-10-20T12:34:27.084Z",
+      "updatedAt": "2026-10-20T12:34:27.084Z",
+      "relatedFiles": [
+        {
+          "path": "apps/web/src/app/sitemap.ts",
+          "type": "CREATE",
+          "description": "sitemap"
+        },
+        {
+          "path": "apps/web/src/app/robots.ts",
+          "type": "CREATE",
+          "description": "robots"
+        }
+      ],
+      "implementationGuide": "1. Next 16 문서로 metadata, sitemap, robots, opengraph-image 규약 확인\\n2. NEXT_PUBLIC_SITE_URL 등 사이트 URL env 추가 시 .env.example·turbo.json 반영\\n3. Playwright MCP로 뷰포트별 스크린샷 점검\\n4. Lighthouse 측정",
+      "verificationCriteria": "/sitemap.xml·/robots.txt 응답, 상세 페이지 metadata 정상, Lighthouse Performance 90+, LCP 2.5초 이하."
+    },
+    {
+      "id": "f1a2dcad-661d-4081-9c05-10bc0b9ada62",
+      "name": "[5단계] E2E 테스트 및 프로덕션 배포",
+      "description": "Playwright E2E: 목록→상세 이동, 카테고리·날짜 필터, 검색(chromium + mobile). 기존 Starter Kit E2E는 정리 범위에 맞춰 제거·수정. 배포 플랫폼(Vercel 등)에 NOTION_TOKEN·NOTION_DATABASE_ID 등록, 프로덕션 배포·도메인 연결, README에 배포 주소와 실행 방법 추가.",
+      "notes": "배포·도메인 연결은 외부 공개 작업이므로 실행 전 사용자 승인 필요.",
+      "status": "pending",
+      "dependencies": [
+        {
+          "taskId": "8db0543e-246d-49d7-8f26-0cea455e7838"
+        }
+      ],
+      "createdAt": "2026-10-20T12:34:27.084Z",
+      "updatedAt": "2026-10-20T12:34:27.084Z",
+      "relatedFiles": [
+        {
+          "path": "apps/web/e2e",
+          "type": "TO_MODIFY",
+          "description": "E2E 테스트"
+        },
+        {
+          "path": "README.md",
+          "type": "TO_MODIFY",
+          "description": "배포 주소·실행 방법"
+        }
+      ],
+      "implementationGuide": "1. e2e/portfolio.spec.ts 작성, Notion 의존을 줄이려면 실제 샘플 DB 사용\\n2. playwright.config의 webServer·DB 시드 의존 정리\\n3. 배포는 사용자 확인 후 진행(외부 공개 작업)\\n4. README 갱신",
+      "verificationCriteria": "build, lint, test, E2E 모두 통과. 배포 주소에서 세 화면이 모바일·데스크톱 정상 동작 (ROADMAP 5단계 완료 기준)."
+    }
+  ]
+}
